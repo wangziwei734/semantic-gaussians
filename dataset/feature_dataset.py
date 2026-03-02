@@ -30,10 +30,15 @@ class FeatureDataset(Dataset):
         self.scenes.sort()
 
         self.data = []
+        # Pre-load data to speed up training
+        self.preloaded_data = []
+        print("Pre-loading dataset into memory...")
         for scene in self.scenes:
             features = os.listdir(os.path.join(point_dir, scene))
             features.sort()
             for feature in features:
+                if not feature.endswith(".pt"):
+                    continue
                 ply_path = os.path.join(
                     gaussians_dir,
                     scene,
@@ -43,6 +48,17 @@ class FeatureDataset(Dataset):
                 )
                 feature_path = os.path.join(point_dir, scene, feature)
                 self.data.append([ply_path, feature_path, 0])
+                
+                # Load immediately
+                locs, feats = load_gaussian_ply(ply_path, self.feature_type)
+                gt = torch.load(feature_path)
+                self.preloaded_data.append({
+                    "locs": locs, 
+                    "features": feats,
+                    "features_gt": gt["feat"],
+                    "mask_chunk": gt["mask_full"]
+                })
+        print(f"Loaded {len(self.data)} samples.")
 
         self.voxelizer = Voxelizer(
             voxel_size=voxel_size,
@@ -58,10 +74,13 @@ class FeatureDataset(Dataset):
 
     def __getitem__(self, index):
         with torch.no_grad():
-            ply_path, feature_path, head_id = self.data[index]
-            locs, features = load_gaussian_ply(ply_path, self.feature_type)
-            gt = torch.load(feature_path)
-            features_gt, mask_chunk = gt["feat"], gt["mask_full"]
+            # Use preloaded data
+            sample = self.preloaded_data[index]
+            locs = sample["locs"].copy()
+            features = sample["features"].copy()
+            features_gt = sample["features_gt"]
+            mask_chunk = sample["mask_chunk"]
+            head_id = self.data[index][2]
 
             # numpy transforms
             if self.aug:

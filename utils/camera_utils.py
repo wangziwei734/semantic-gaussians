@@ -25,7 +25,7 @@ def loadCam(args, id, cam_info, resolution_scale):
     im_data = np.array(image.convert("RGBA"))
     norm_data = im_data / 255.0
     arr = norm_data[:, :, :3] * norm_data[:, :, 3:4] + bg * (1 - norm_data[:, :, 3:4])
-    image = Image.fromarray(np.array(arr * 255.0, dtype=np.byte), "RGB")
+    image = Image.fromarray(np.array(arr * 255.0, dtype=np.uint8), "RGB")
 
     orig_w, orig_h = image.size
 

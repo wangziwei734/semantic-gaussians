@@ -5,7 +5,7 @@ import collections
 import numpy as np
 from scipy.linalg import expm, norm
 import torch
-from collections import Sequence
+from collections.abc import Sequence
 from utils.graphics_utils import focal2fov, fov2focal
 
 
@@ -119,7 +119,7 @@ class Voxelizer:
         # 1. Random rotation
         rot_mat = np.eye(3)
         if self.use_augmentation and self.rotation_augmentation_bound is not None:
-            if isinstance(self.rotation_augmentation_bound, collections.Iterable):
+            if isinstance(self.rotation_augmentation_bound, collections.abc.Iterable):
                 rot_mats = []
                 for axis_ind, rot_bound in enumerate(self.rotation_augmentation_bound):
                     theta = 0

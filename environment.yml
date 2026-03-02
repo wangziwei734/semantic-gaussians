@@ -4,10 +4,9 @@ channels:
   - pytorch
   - conda-forge
 dependencies:
-  - cuda=11.8.0
+  - python=3.10
+  - cuda-toolkit=11.8
   - pytorch-cuda=11.8
-  - plyfile=0.8.1
-  - python=3.9.18
   - pytorch=2.1.1
   - numpy=1.23.5
   - torchaudio=2.1.1
@@ -15,3 +14,8 @@ dependencies:
   - pip=22.3.1
   - setuptools=66.0.0
   - tqdm
+  - scipy=1.11.4
+  - omegaconf
+  - imageio=2.31.4
+  - scikit-image=0.22.0
+  - ninja

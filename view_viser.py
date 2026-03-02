@@ -279,7 +279,7 @@ def main(config):
                         background,
                         scaling_modifier=gui_scale_slider.value,
                         override_shape=(width, height),
-                        foreground=gaussians.is_fg if gui_background_checkbox.value else None,
+                        foreground=gaussians.is_fg if gui_background_checkbox.value and hasattr(gaussians, "is_fg") else None,
                     )
                     rendering = output["render"].cpu().numpy().transpose(1, 2, 0)
                 elif render_mode == "Depth":
@@ -290,7 +290,7 @@ def main(config):
                         background,
                         scaling_modifier=gui_scale_slider.value,
                         override_shape=(width, height),
-                        foreground=gaussians.is_fg if gui_background_checkbox.value else None,
+                        foreground=gaussians.is_fg if gui_background_checkbox.value and hasattr(gaussians, "is_fg") else None,
                     )
                     rendering = output["depth"].cpu().numpy().transpose(1, 2, 0)
                     rendering = np.clip(
@@ -309,7 +309,7 @@ def main(config):
                         num_channels=soft_save.shape[1],
                         override_color=soft_save,
                         override_shape=(width//2, height//2),
-                        foreground=gaussians.is_fg if gui_background_checkbox.value else None,
+                        foreground=gaussians.is_fg if gui_background_checkbox.value and hasattr(gaussians, "is_fg") else None,
                     )
                     sim = output["render"]
                     label = sim.argmax(dim=0).cpu()
@@ -324,15 +324,20 @@ def main(config):
                         scaling_modifier=gui_scale_slider.value,
                         override_color=color_save,
                         override_shape=(width//2, height//2),
-                        foreground=gaussians.is_fg if gui_background_checkbox.value else None,
+                        foreground=gaussians.is_fg if gui_background_checkbox.value and hasattr(gaussians, "is_fg") else None,
                     )
                     rendering = output["render"].cpu().numpy().transpose(1, 2, 0)
                 client.set_background_image(rendering)
 
 
 if __name__ == "__main__":
-    config = OmegaConf.load("./config/view_scannet.yaml")
-    override_config = OmegaConf.from_cli()
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--config", type=str, default="./config/view_scannet.yaml", help="Path to the config file")
+    args, unknown = parser.parse_known_args()
+
+    config = OmegaConf.load(args.config)
+    override_config = OmegaConf.from_dotlist(unknown)
     config = OmegaConf.merge(config, override_config)
     print(OmegaConf.to_yaml(config))
 

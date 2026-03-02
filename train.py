@@ -215,8 +215,15 @@ def train(config):
 
 
 if __name__ == "__main__":
-    config = OmegaConf.load("./config/official_train.yaml")
-    override_config = OmegaConf.from_cli()
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--config", type=str, default="./config/official_train.yaml", help="Path to the config file")
+    args, unknown = parser.parse_known_args()
+
+    config = OmegaConf.load(args.config)
+    # Convert unknown args (list of strings like "key=value") to a dotlist for OmegaConf
+    # OmegaConf.from_cli() uses sys.argv, so we should pass the unknown args
+    override_config = OmegaConf.from_dotlist(unknown)
     config = OmegaConf.merge(config, override_config)
     print(OmegaConf.to_yaml(config))
 

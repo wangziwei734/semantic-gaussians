@@ -90,7 +90,7 @@ def distill(config):
     )
 
     ema_loss_for_log = 0.0
-    eval(config, model_3d, model_2d, dataset.voxelizer, -1)
+    # eval(config, model_3d, model_2d, dataset.voxelizer, -1)
 
     progress_bar = tqdm(
         range(config.distill.epochs * len(loader)),
@@ -233,8 +233,13 @@ def eval(config, model_3d, model_2d, voxelizer, iter):
 
 
 if __name__ == "__main__":
-    config = OmegaConf.load("./config/distill_scannet.yaml")
-    override_config = OmegaConf.from_cli()
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--config", type=str, default="./config/distill_scannet.yaml", help="Path to the config file")
+    args, unknown = parser.parse_known_args()
+
+    config = OmegaConf.load(args.config)
+    override_config = OmegaConf.from_dotlist(unknown)
     config = OmegaConf.merge(config, override_config)
     print(OmegaConf.to_yaml(config))
 

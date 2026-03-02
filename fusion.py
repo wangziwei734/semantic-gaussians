@@ -51,12 +51,12 @@ def fuse_one_scene(config, model_2d):
         batch_size=1,
         shuffle=False,
         collate_fn=lambda x: x,
-        num_workers=config.fusion.num_workers,
+        num_workers=0,
     )
 
     # feature fusion
     with torch.no_grad():
-        vis_id = torch.zeros((gaussians._xyz.shape[0], len(views)), dtype=int)
+        vis_id = torch.zeros((gaussians._xyz.shape[0], len(views)), dtype=int).cpu()
         for idx, view in enumerate(tqdm(loader)):
             if idx % 5 != 0:
                 continue
@@ -143,9 +143,11 @@ def fuse_one_scene(config, model_2d):
             gaussians._times[mask_k] += 1
             gaussians._features_semantic[mask_k] += features_mapping[mask_k]
 
+        del vis_id
+        torch.cuda.empty_cache()
+
         gaussians._times[gaussians._times == 0] = 1e-5
         gaussians._features_semantic /= gaussians._times
-        point_ids = torch.unique(vis_id.nonzero(as_tuple=False)[:, 0])
 
         ################################ Save relevancy maps from projected gaussians #################################
         # relevancy_save_path = os.path.join(config.model.model_dir, "render", "relevancy")
@@ -220,6 +222,9 @@ def fuse_one_scene(config, model_2d):
         # exit()
 
     # save fused features
+    del model_2d, loader, views
+    torch.cuda.empty_cache()
+
     if config.model.dynamic:
         os.makedirs(config.fusion.out_dir + "/%d" % config.model.dynamic_t, exist_ok=True)
     else:
@@ -233,7 +238,7 @@ def fuse_one_scene(config, model_2d):
         if gaussians._xyz.shape[0] < config.fusion.n_split_points: # to handle point cloud numbers less than n_split_points
             torch.save(
             {
-                "feat": gaussians._features_semantic.cpu().half(),
+                "feat": gaussians._features_semantic.half().cpu(),
                 "mask_full": torch.ones(gaussians._xyz.shape[0], dtype=torch.bool),
             },
             save_path
@@ -250,7 +255,7 @@ def fuse_one_scene(config, model_2d):
 
             torch.save(
                 {
-                    "feat": gaussians._features_semantic[mask_entire].cpu().half(),
+                    "feat": gaussians._features_semantic[mask_entire].half().cpu(),
                     "mask_full": mask_entire,
                 },
                 save_path
@@ -258,8 +263,13 @@ def fuse_one_scene(config, model_2d):
 
 
 if __name__ == "__main__":
-    config = OmegaConf.load("./config/fusion_scannet.yaml")
-    override_config = OmegaConf.from_cli()
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--config", type=str, default="./config/fusion_scannet.yaml", help="Path to the config file")
+    args, unknown = parser.parse_known_args()
+
+    config = OmegaConf.load(args.config)
+    override_config = OmegaConf.from_dotlist(unknown)
     config = OmegaConf.merge(config, override_config)
     print(OmegaConf.to_yaml(config))
 
@@ -289,7 +299,7 @@ if __name__ == "__main__":
 
     scenes = os.listdir(config.model.model_dir)
     scenes.sort()
-    model_2d.set_predefined_cls(SCANNET20_CLASS_LABELS)
+    # model_2d.set_predefined_cls(SCANNET20_CLASS_LABELS)
 
     fuse_one_scene(config, model_2d)
 
